@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { TextGeometry } from 'three/geometries/TextGeometry.js';
 
-var scene, camera, renderer, earthMesh, cloudMesh, duck;
+var scene, currentCamera, freeCamera, fixedCamera, renderer, earthMesh, cloudMesh, duck, pivot, controls, moveText, sound;
 
 var init = () => {
   scene = new THREE.Scene();
@@ -10,9 +12,15 @@ var init = () => {
   const ASPECT = window.innerWidth / window.innerHeight;
   const NEAR = 1;
   const FAR = 50000;
-  camera = new THREE.PerspectiveCamera(FOV, ASPECT, NEAR, FAR);
-  camera.position.set(50, 15, 50);
-  camera.lookAt(0, 0, 0);
+  freeCamera = new THREE.PerspectiveCamera(FOV, ASPECT, NEAR, FAR);
+  freeCamera.position.set(50, 15, 50);
+  freeCamera.lookAt(0, 0, 0);
+
+  fixedCamera = new THREE.PerspectiveCamera(FOV, ASPECT, NEAR, FAR);
+  fixedCamera.position.set(0, 15, 50);
+  fixedCamera.lookAt(0, 0, 0);
+
+  currentCamera = fixedCamera;
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -22,14 +30,14 @@ var init = () => {
 };
 
 window.onresize = function () {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+  freeCamera.aspect = window.innerWidth / window.innerHeight;
+  freeCamera.updateProjectionMatrix();
 
   renderer.setSize(window.innerWidth, window.innerHeight);
 };
 
 var OrbControl = () => {
-  const controls = new OrbitControls(camera, renderer.domElement);
+  controls = new OrbitControls(freeCamera, renderer.domElement);
   controls.target.set(0, 0.5, 0);
   controls.update();
   controls.enablePan = false;
@@ -52,11 +60,15 @@ var initBackGround = () => {
 
 var createDuck = () => {
   var loader = new GLTFLoader();
-    loader.load('Duck.gltf', gltf => {
+    loader.load('./assets/Duck.gltf', gltf => {
+        pivot = new THREE.Object3D();
+        
         duck = gltf.scene;
         duck.position.set(0, 10, 0);
-        duck.rotation.y += -90
-        scene.add(duck)
+        // duck.rotation.y += -90
+
+        pivot.add(duck);
+        scene.add(pivot);
     })
 };
 
@@ -98,7 +110,7 @@ var render = () => {
   earthMesh.rotation.y += 0.005;
   cloudMesh.rotation.y += 0.003;
   //duck.rotation.x += 0.2;
-  renderer.render(scene, camera);
+  renderer.render(scene, currentCamera);
 };
 
 let createPointLight = () => {
@@ -115,13 +127,105 @@ let createSpotLight = () => {
   scene.add(SpotLight);
 };
 
+const createText = () => {
+    const loader = new FontLoader()
+
+    loader.load('./three.js-dev/examples/fonts/helvetiker_bold.typeface.json', (font) => {
+        addText(font, 'Press space \nto switch camera!', new THREE.Vector3(20, 15, 0), - Math.PI / 10, - Math.PI / 20)
+        moveText = addText(font, 'Try pressing a or d!', new THREE.Vector3(-10, 10, 0), Math.PI / 16, Math.PI / 20)
+    })
+    
+}
+
+const addText = (font, text, position, ry, rz) => {
+  const geometry = new TextGeometry(text, {
+      font: font,
+      size: 0.5,
+      height: 1,
+  })
+  const material = new THREE.MeshPhongMaterial({
+      color: '#FFFFFF'
+  })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(position.x, position.y, position.z)
+  mesh.rotation.y = ry
+  mesh.rotation.z = rz
+  scene.add(mesh)
+  return mesh
+}
+
+const addSound = () => {
+  const listener = new THREE.AudioListener();
+  fixedCamera.add( listener );
+
+  sound = new THREE.Audio( listener );
+
+  const audioLoader = new THREE.AudioLoader();
+  audioLoader.load( './assets/quack.mpeg', function( buffer ) {
+    sound.setBuffer( buffer );
+    sound.setVolume( 0.1 );
+    sound.play();
+  });
+}
+
 window.onload = () => {
   init();
+  addListener();
   createPointLight();
   createSpotLight();
   createEarth();
   createDuck();
+  createText();
+  addSound();
   initBackGround();
   OrbControl();
   render();
+  
 };
+
+const addListener = () => {
+    document.addEventListener('keydown', keyboardDownListener)
+    document.addEventListener('keyup', keyboardUpListener)
+}
+
+const keyboardUpListener = (event) => {
+  switch(event.keyCode){
+    case 68: { // Right
+      if (currentCamera == freeCamera) break;
+      sound.play();
+      break;
+    }
+    case 65: { // Left
+      if (currentCamera == freeCamera) break;
+      sound.play();
+      break;
+    }
+    case 32: { // Space
+      if (currentCamera == fixedCamera){
+            controls.reset() // Change back to default
+            scene.remove(moveText);
+            currentCamera = freeCamera
+      } else {
+          scene.add(moveText);
+          currentCamera = fixedCamera
+      }
+    }
+}
+}
+
+const keyboardDownListener = (event) => {
+  switch(event.keyCode){
+    case 68: { // Right
+      if (currentCamera == freeCamera) break;
+      if (duck.rotation.y !== 0) duck.rotation.y = 0;
+      pivot.rotateOnWorldAxis( new THREE.Vector3(0, 0, 1), -Math.PI/32);
+      break;
+    }
+    case 65: { // Left
+      if (currentCamera == freeCamera) break;
+      if (duck.rotation.y !== Math.PI) duck.rotation.y = Math.PI;
+      pivot.rotateOnWorldAxis( new THREE.Vector3(0, 0, 1), Math.PI/32);
+      break;
+    }
+  }
+}
