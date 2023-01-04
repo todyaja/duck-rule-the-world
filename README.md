@@ -1,1 +1,1 @@
-"# duck-rule-the-world" 
+"# duck-rules-the-world" 
