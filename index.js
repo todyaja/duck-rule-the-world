@@ -31,9 +31,9 @@ var init = () => {
 
 window.onresize = function () {
   freeCamera.aspect = window.innerWidth / window.innerHeight;
-  freeCamera.updateProjectionMatrix();
 
   renderer.setSize(window.innerWidth, window.innerHeight);
+  freeCamera.updateProjectionMatrix();
 };
 
 var OrbControl = () => {
@@ -161,7 +161,7 @@ const addSound = () => {
   sound = new THREE.Audio( listener );
 
   const audioLoader = new THREE.AudioLoader();
-  audioLoader.load( './assets/quack.mpeg', function( buffer ) {
+  audioLoader.load( './assets/quack.mp3', function( buffer ) {
     sound.setBuffer( buffer );
     sound.setVolume( 0.1 );
     sound.play();
