@@ -4,7 +4,7 @@ import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { TextGeometry } from 'three/geometries/TextGeometry.js';
 
-var scene, currentCamera, freeCamera, fixedCamera, renderer, earthMesh, cloudMesh, duck, pivot, controls, moveText, sound;
+var scene, currentCamera, freeCamera, fixedCamera, renderer, earthMesh, cloudMesh, duck, duckPivot, rocketPivot, controls, moveText, sound, rocket;
 
 var init = () => {
   scene = new THREE.Scene();
@@ -61,14 +61,39 @@ var initBackGround = () => {
 var createDuck = () => {
   var loader = new GLTFLoader();
     loader.load('./assets/Duck.gltf', gltf => {
-        pivot = new THREE.Object3D();
+        duckPivot = new THREE.Object3D();
         
         duck = gltf.scene;
         duck.position.set(0, 10, 0);
         // duck.rotation.y += -90
 
-        pivot.add(duck);
-        scene.add(pivot);
+        duckPivot.add(duck);
+        scene.add(duckPivot);
+    })
+};
+
+var createRocket = () => {
+  var loader = new GLTFLoader();
+    loader.load('./assets/rocket/rocket.gltf', gltf => {
+        rocketPivot = new THREE.Object3D();
+        rocket = gltf.scene;
+        rocket.position.set(20, 0, 10);
+        rocket.rotation.x = -Math.PI /2
+
+        rocketPivot.add(rocket)
+        scene.add(rocketPivot);
+    })
+};
+
+var createAsteroid = (x, y, z) => {
+  var loader = new GLTFLoader();
+    loader.load('./assets/asteroid.glb', gltf => {
+        // rocketPivot = new THREE.Object3D();
+        let asteroid = gltf.scene;
+        asteroid.position.set(x, y, z);
+        asteroid.scale.set(0.05, 0.05, 0.05)
+
+        scene.add(asteroid);
     })
 };
 
@@ -109,6 +134,7 @@ var render = () => {
   requestAnimationFrame(render);
   earthMesh.rotation.y += 0.005;
   cloudMesh.rotation.y += 0.003;
+  rocketPivot?.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), Math.PI / 200)
   //duck.rotation.x += 0.2;
   renderer.render(scene, currentCamera);
 };
@@ -174,6 +200,16 @@ window.onload = () => {
   createPointLight();
   createSpotLight();
   createEarth();
+  createRocket();
+  createAsteroid(20, 0, -20);
+  createAsteroid(-30, 5, -10);
+  createAsteroid(-21, 10, -10);
+  createAsteroid(10, -10, -30);
+  createAsteroid(10, 5, 10);
+  createAsteroid(-15, 5, -10);
+  createAsteroid(-20, -10, 10);
+  createAsteroid(-10, -5, 15);
+  createAsteroid(30, -5, 10);
   createDuck();
   createText();
   addSound();
@@ -218,13 +254,13 @@ const keyboardDownListener = (event) => {
     case 68: { // Right
       if (currentCamera == freeCamera) break;
       if (duck.rotation.y !== 0) duck.rotation.y = 0;
-      pivot.rotateOnWorldAxis( new THREE.Vector3(0, 0, 1), -Math.PI/32);
+      duckPivot.rotateOnWorldAxis( new THREE.Vector3(0, 0, 1), -Math.PI/32);
       break;
     }
     case 65: { // Left
       if (currentCamera == freeCamera) break;
       if (duck.rotation.y !== Math.PI) duck.rotation.y = Math.PI;
-      pivot.rotateOnWorldAxis( new THREE.Vector3(0, 0, 1), Math.PI/32);
+      duckPivot.rotateOnWorldAxis( new THREE.Vector3(0, 0, 1), Math.PI/32);
       break;
     }
   }
